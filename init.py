@@ -1,8 +1,3 @@
-"""
-RinBot v1.5.1 (GitHub release)
-made by rin
-"""
-
 # Make sure cache dirs exist
 import os
 folders = ["program/music/cache", "log"]
@@ -79,117 +74,6 @@ bot.config = config
 # Vars
 freshstart = True
 
-# Will I use AI?
-use_ai = config['use_ai']
-if use_ai:
-    # Load AI environment variables
-    load_dotenv()
-    DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-    ENDPOINT = str(os.getenv("ENDPOINT"))
-    CHANNEL_ID = os.getenv("CHANNEL_ID")
-    CHAT_HISTORY_LINE_LIMIT = os.getenv("CHAT_HISTORY_LINE_LIMIT")
-    if os.getenv("MAX_NEW_TOKENS") is not None:
-        MAX_NEW_TOKENS = os.getenv("MAX_NEW_TOKENS")
-    else:
-        MAX_NEW_TOKENS = 300
-
-    # Specific AI settings
-    bot.endpoint = str(ENDPOINT)
-    if len(bot.endpoint.split("/api")) > 0:
-        bot.endpoint = bot.endpoint.split("/api")[0]
-    bot.chatlog_dir = "log"
-    bot.endpoint_connected = False
-    bot.channel_id = CHANNEL_ID
-    bot.num_lines_to_keep = int(CHAT_HISTORY_LINE_LIMIT)
-    bot.guild_ids = [int(x) for x in CHANNEL_ID.split(",")]
-    bot.debug = True
-    bot.char_name = config['ai_char']
-    characters_folder = "ai/Characters"
-    cards_folder = "ai/Cards"
-    characters = {}
-    bot.endpoint_type = "Kobold"
-    bot.llm = KoboldApiLLM(endpoint=bot.endpoint, max_length=MAX_NEW_TOKENS)
-
-    # Saves AI characters
-    def upload_character(json_file, img, tavern=False):
-        json_file = json_file if type(json_file) == str else json_file.decode("utf-8")
-        data = json.loads(json_file)
-        outfile_name = data["char_name"]
-        i = 1
-        while Path(f"{characters_folder}/{outfile_name}.json").exists():
-            outfile_name = f'{data["char_name"]}_{i:03d}'
-            i += 1
-        if tavern:
-            outfile_name = f"TavernAI-{outfile_name}"
-        with open(Path(f"{characters_folder}/{outfile_name}.json"), "w") as f:
-            f.write(json_file)
-        if img is not None:
-            img = Image.open(io.BytesIO(img))
-            img.save(Path(f"{characters_folder}/{outfile_name}.png"))
-        bot.logger.info(f'New character saved to "{characters_folder}/{outfile_name}.json".')
-        return outfile_name
-
-    # Saves AI characters (tavern)
-    def upload_tavern_character(img, name1, name2):
-        _img = Image.open(io.BytesIO(img))
-        _img.getexif()
-        decoded_string = base64.b64decode(_img.info["chara"])
-        _json = json.loads(decoded_string)
-        _json = {
-            "char_name": _json["name"],
-            "char_persona": _json["description"],
-            "char_greeting": _json["first_mes"],
-            "example_dialogue": _json["mes_example"],
-            "world_scenario": _json["scenario"],}
-        _json["example_dialogue"] = (
-            _json["example_dialogue"]
-            .replace("{{user}}", name1)
-            .replace("{{char}}", _json["char_name"]))
-        return upload_character(json.dumps(_json), img, tavern=True)
-    try:
-        for filename in os.listdir(cards_folder):
-            if filename.endswith(".png"):
-                with open(os.path.join(cards_folder, filename), "rb") as read_file:
-                    img = read_file.read()
-                    name1 = "User"
-                    name2 = "Character"
-                    tavern_character_data = upload_tavern_character(img, name1, name2)
-                with open(
-                    os.path.join(characters_folder, tavern_character_data + ".json")
-                ) as read_file:
-                    character_data = json.load(read_file)
-                    # characters.append(character_data)
-                read_file.close()
-                if not os.path.exists(f"{cards_folder}/Converted"):
-                    os.makedirs(f"{cards_folder}/Converted")
-                os.rename(
-                    os.path.join(cards_folder, filename),
-                    os.path.join(f"{cards_folder}/Converted/", filename),)
-    except:
-        pass
-    for filename in os.listdir(characters_folder):
-        if filename.endswith(".json"):
-            with open(
-                os.path.join(characters_folder, filename), encoding="utf-8"
-            ) as read_file:
-                character_data = json.load(read_file)
-                character_data["char_filename"] = filename
-                image_file_jpg = f"{os.path.splitext(filename)[0]}.jpg"
-                image_file_png = f"{os.path.splitext(filename)[0]}.png"
-                if os.path.exists(os.path.join(characters_folder, image_file_jpg)):
-                    character_data["char_image"] = image_file_jpg
-                elif os.path.exists(os.path.join(characters_folder, image_file_png)):
-                    character_data["char_image"] = image_file_png
-                characters[os.path.splitext(filename)[0]] = character_data
-    if os.path.exists('ai/chardata.json'):
-        with open('ai/chardata.json', encoding='utf-8') as read_file:
-            character_data = json.load(read_file)
-    else:
-        data = characters[config['ai_char']]
-        char_name = data['char_name']
-        char_filename = os.path.join(characters_folder, data['char_filename'])
-        shutil.copyfile(char_filename, "ai/chardata.json")
-# Don't even ask me how this works ^
 
 # Start SQL database
 async def init_db():
@@ -200,6 +84,7 @@ async def init_db():
             f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql"
         ) as file:
             await db.executescript(file.read())
+
 
 # When ready
 @bot.event
@@ -214,21 +99,6 @@ async def on_ready() -> None:
     bot.logger.info(f" > Running on: {platform.system()}-{platform.release()} ({os.name})")
     bot.logger.info("--------------------------------------")
     
-    # Load AI extensions
-    if use_ai:
-        bot.logger.info('Usando IA...')
-        for items in bot.guild_ids:
-            try:
-                channel = bot.get_channel(int(items))
-                guild = channel.guild
-                if isinstance(channel, discord.TextChannel):
-                    channel_name = channel.name
-                    bot.logger.info(f'AI Text channel: {guild.name} | {channel_name}')
-                else:
-                    bot.logger.error(f'AI Text channel {bot.channel_id} is not a valid text channel, check your ID or channel settings.')
-            except AttributeError:
-                bot.logger.error(
-                    "Couldn't validate AI text channel, verify the ID, channel settings, and if I have the necessary permissions.")
     
     # Default status
     await bot.change_presence(
@@ -239,6 +109,7 @@ async def on_ready() -> None:
     bot.logger.info("Synching commands globally")
     await bot.tree.sync()
 
+# TODO: Change the guild_id to be at the database
 # Save new guild ID's when joining
 @bot.event
 async def on_guild_join(guild):
@@ -343,20 +214,7 @@ async def load_extensions() -> None:
             except Exception as e:
                 exception = f"{type(e).__name__}: {e}"
                 bot.logger.error(f"Error while loading extension {extension}\n{exception}")
-    if use_ai:
-        for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/ai"):
-            if file.endswith(".py"):
-                extension = file[:-3]
-                try:
-                    await bot.load_extension(f"ai.{extension}")
-                    if extension == 'languagemodel':
-                        bot.endpoint_connected = True
-                    bot.logger.info(f"AI extension '{extension}' loaded.")
-                except Exception as e:
-                    if extension == 'languagemodel':
-                        bot.endpoint_connected = False
-                    exception = f"{type(e).__name__}: {e}"
-                    bot.logger.error(f"Error on AI extension '{extension}': \n{exception}")
+
 
 # Wait 5 seconds when coming from a reset
 try:
