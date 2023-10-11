@@ -1,8 +1,3 @@
-"""
-RinBot v1.5.1 (GitHub release)
-made by rin
-"""
-
 # Imports
 import discord, json, asyncio, os, random
 from discord.ext.commands import Bot, Context
@@ -210,11 +205,11 @@ class Player():
         # End of queue
         else:
             if not self.client.is_playing() and not self.is_paused:
-                await asyncio.sleep(2)
+                await asyncio.sleep(180)
                 await self.disconnect()
                 if not self.manual_dc:
                     embed = discord.Embed(
-                        description=" 👋  Disconnecting. End of queue.",
+                        description=" 👋  Disconnecting after 3 minutes. End of queue.",
                         color=0x25d917)
                     await self.ctx.send(embed=embed)
                 self.manual_dc = False
