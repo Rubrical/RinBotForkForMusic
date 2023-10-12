@@ -7,14 +7,12 @@ for folder in folders:
         print(f"[init.py]-[Info]: Created directory '{folder}'")
 
 # Imports
-import io, subprocess, shutil, asyncio, json, base64, platform, sys, aiosqlite, exceptions, discord, time
+import subprocess, asyncio, json, platform, sys, aiosqlite, exceptions, discord, time
 from discord.ext import commands
 from discord.ext.commands import Bot, Context
 from program.logger import logger
-from langchain.llms import KoboldApiLLM
 from dotenv import load_dotenv
-from pathlib import Path
-from PIL import Image
+
 
 # Load base config file
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.json"):
@@ -204,7 +202,6 @@ async def on_command_error(context: Context, error) -> None:
 
 # Loads extensions (command cogs)
 async def load_extensions() -> None:
-    global use_ai
     for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/extensions"):
         if file.endswith(".py"):
             extension = file[:-3]
