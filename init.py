@@ -69,9 +69,6 @@ bot = Bot(
 bot.logger = logger
 bot.config = config
 
-# Vars
-freshstart = True
-
 
 # Start SQL database
 async def init_db():
