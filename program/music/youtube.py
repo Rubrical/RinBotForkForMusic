@@ -15,7 +15,7 @@ ydl_opts = {
     'nocheckcertificate': True,
     'ignoreerrors': True}
 ffmpeg_opts = {
-    'options': '-vn -b:a 128k',  # 128kbps bitrate
+    'options': '-vn -b:a 32k',  # 32kbps bitrate
     'executable':
         
         # Use included ffmpeg executable if on windows
